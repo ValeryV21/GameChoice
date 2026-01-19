@@ -301,4 +301,5 @@ st.markdown(
     'Създадено с ❤️ за геймъри от геймъри | Powered by Streamlit 🎮'
     '</p>', 
     unsafe_allow_html=True
+
 )
