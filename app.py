@@ -1,7 +1,5 @@
-import streamlit as st
+import streamlit as stimport streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 
 # Page config
 st.set_page_config(page_title="Gaming Survey", page_icon="🎮", layout="wide")
@@ -210,50 +208,16 @@ if st.session_state.total_votes > 0:
     tab1, tab2, tab3 = st.tabs(["📊 Статистика по жанр", "🎮 Статистика по игри", "🔥 Текущ жанр"])
     
     with tab1:
-        # Genre bar chart with Plotly
+        # Genre bar chart
         genre_df = pd.DataFrame.from_dict(st.session_state.genre_votes, orient="index", columns=["Гласове"])
-        genre_df = genre_df.sort_values("Гласове", ascending=True)
-        
-        fig_genre = px.bar(
-            genre_df, 
-            x="Гласове", 
-            y=genre_df.index,
-            orientation='h',
-            title="Гласове по жанр",
-            color="Гласове",
-            color_continuous_scale=["#667eea", "#764ba2", "#FFD700"]
-        )
-        fig_genre.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white', size=14),
-            showlegend=False,
-            height=400
-        )
-        st.plotly_chart(fig_genre, use_container_width=True)
+        genre_df = genre_df.sort_values("Гласове", ascending=False)
+        st.bar_chart(genre_df)
     
     with tab2:
         # Top games chart
         game_df = pd.DataFrame.from_dict(st.session_state.game_votes, orient="index", columns=["Гласове"])
         game_df = game_df[game_df["Гласове"] > 0].sort_values("Гласове", ascending=False).head(10)
-        
-        fig_games = px.bar(
-            game_df,
-            x=game_df.index,
-            y="Гласове",
-            title="Топ 10 най-гласувани игри",
-            color="Гласове",
-            color_continuous_scale=["#FF6B6B", "#FF8E53", "#FFD700"]
-        )
-        fig_games.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white', size=14),
-            showlegend=False,
-            xaxis_tickangle=-45,
-            height=500
-        )
-        st.plotly_chart(fig_games, use_container_width=True)
+        st.bar_chart(game_df)
     
     with tab3:
         # Current genre breakdown
@@ -261,19 +225,8 @@ if st.session_state.total_votes > 0:
         current_genre_votes = {game: st.session_state.game_votes[game] for game in genre_games}
         
         if sum(current_genre_votes.values()) > 0:
-            fig_pie = px.pie(
-                values=list(current_genre_votes.values()),
-                names=list(current_genre_votes.keys()),
-                title=f"Разпределение на игрите в {genre}",
-                color_discrete_sequence=px.colors.sequential.Plasma
-            )
-            fig_pie.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white', size=14),
-                height=500
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            current_df = pd.DataFrame.from_dict(current_genre_votes, orient="index", columns=["Гласове"])
+            st.bar_chart(current_df)
             
             # Show top game in current genre
             top_game_in_genre = max(genre_games, key=lambda m: st.session_state.game_votes[m])
