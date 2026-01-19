@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 
-# Page config
-st.set_page_config(page_title="Gaming Survey", page_icon="🎮", layout="wide")
+# Page configuration
+st.set_page_config(
+    page_title="Анкета за игри",
+    page_icon="🎮",
+    layout="wide"
+)
 
-# Custom styling
-st.markdown(
-    """
+# Custom CSS styling
+st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
     
@@ -74,14 +77,14 @@ st.markdown(
     }
     
     .stat-title {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         font-weight: bold;
         color: #FFD700;
         margin-bottom: 10px;
     }
     
     .stat-value {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: 900;
         color: #FFFFFF;
         text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
@@ -91,10 +94,12 @@ st.markdown(
         font-size: 2rem;
         color: #FFD700;
     }
+    
+    [data-testid="stMetricLabel"] {
+        color: #FFFFFF !important;
+    }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 # Title
 st.markdown('<h1 class="main-title">🎮 АНКЕТА ЗА ЛЮБИМИ ИГРИ 🎮</h1>', unsafe_allow_html=True)
@@ -156,28 +161,27 @@ games = {
 # Initialize session state
 if "genre_votes" not in st.session_state:
     st.session_state.genre_votes = {g: 0 for g in games.keys()}
+
 if "game_votes" not in st.session_state:
     st.session_state.game_votes = {game: 0 for game_list in games.values() for game in game_list}
+
 if "total_votes" not in st.session_state:
     st.session_state.total_votes = 0
-if "vote_history" not in st.session_state:
-    st.session_state.vote_history = []
 
 # Main selection area
 col1, col2 = st.columns(2)
 
 with col1:
-    genre = st.selectbox("🎭 Избери жанр:", list(games.keys()), key="genre_select")
+    genre = st.selectbox("🎭 Избери жанр:", list(games.keys()))
 
 with col2:
-    game = st.selectbox("🎮 Избери игра:", games[genre], key="game_select")
+    game = st.selectbox("🎮 Избери игра:", games[genre])
 
 # Vote button
 if st.button("💾 ЗАПАЗИ ИЗБОРА МИ", use_container_width=True):
     st.session_state.genre_votes[genre] += 1
     st.session_state.game_votes[game] += 1
     st.session_state.total_votes += 1
-    st.session_state.vote_history.append({"genre": genre, "game": game})
     st.success("✅ Изборът ти е записан!")
     st.balloons()
 
@@ -195,42 +199,68 @@ if st.session_state.total_votes > 0:
     
     with col2:
         top_genre = max(st.session_state.genre_votes, key=st.session_state.genre_votes.get)
-        st.metric("🏆 Топ жанр", top_genre.split()[1])
+        genre_name = top_genre.split(None, 1)[1] if ' ' in top_genre else top_genre
+        st.metric("🏆 Топ жанр", genre_name)
     
     with col3:
         top_game = max(st.session_state.game_votes, key=st.session_state.game_votes.get)
         game_name = top_game.split(None, 1)[1] if ' ' in top_game else top_game
-        st.metric("🎮 Топ игра", game_name[:20] + "..." if len(game_name) > 20 else game_name)
+        display_name = game_name[:18] + "..." if len(game_name) > 18 else game_name
+        st.metric("🎮 Топ игра", display_name)
     
     st.markdown("---")
     
-    # Charts
+    # Charts with tabs
     tab1, tab2, tab3 = st.tabs(["📊 Статистика по жанр", "🎮 Статистика по игри", "🔥 Текущ жанр"])
     
     with tab1:
-        # Genre bar chart
-        genre_df = pd.DataFrame.from_dict(st.session_state.genre_votes, orient="index", columns=["Гласове"])
+        st.subheader("Гласове по жанр")
+        genre_df = pd.DataFrame.from_dict(
+            st.session_state.genre_votes, 
+            orient="index", 
+            columns=["Гласове"]
+        )
         genre_df = genre_df.sort_values("Гласове", ascending=False)
         st.bar_chart(genre_df)
     
     with tab2:
-        # Top games chart
-        game_df = pd.DataFrame.from_dict(st.session_state.game_votes, orient="index", columns=["Гласове"])
+        st.subheader("Топ 10 най-гласувани игри")
+        game_df = pd.DataFrame.from_dict(
+            st.session_state.game_votes, 
+            orient="index", 
+            columns=["Гласове"]
+        )
         game_df = game_df[game_df["Гласове"] > 0].sort_values("Гласове", ascending=False).head(10)
-        st.bar_chart(game_df)
+        
+        if len(game_df) > 0:
+            st.bar_chart(game_df)
+        else:
+            st.info("Все още няма гласове за показване")
     
     with tab3:
-        # Current genre breakdown
+        st.subheader(f"Разпределение на игрите в {genre}")
         genre_games = games[genre]
         current_genre_votes = {game: st.session_state.game_votes[game] for game in genre_games}
         
         if sum(current_genre_votes.values()) > 0:
-            current_df = pd.DataFrame.from_dict(current_genre_votes, orient="index", columns=["Гласове"])
+            current_df = pd.DataFrame.from_dict(
+                current_genre_votes, 
+                orient="index", 
+                columns=["Гласове"]
+            )
+            current_df = current_df.sort_values("Гласове", ascending=False)
             st.bar_chart(current_df)
             
             # Show top game in current genre
             top_game_in_genre = max(genre_games, key=lambda m: st.session_state.game_votes[m])
-            st.markdown(f'<div class="stat-card"><div class="stat-title">⭐ Най-популярна в {genre}</div><div class="stat-value">{top_game_in_genre}</div></div>', unsafe_allow_html=True)
+            if st.session_state.game_votes[top_game_in_genre] > 0:
+                st.markdown(
+                    f'<div class="stat-card">'
+                    f'<div class="stat-title">⭐ Най-популярна в {genre}</div>'
+                    f'<div class="stat-value">{top_game_in_genre}</div>'
+                    f'</div>', 
+                    unsafe_allow_html=True
+                )
         else:
             st.info(f"Все още няма гласове за игри от жанр {genre}. Бъди първият, който гласува!")
     
@@ -242,16 +272,33 @@ if st.session_state.total_votes > 0:
     
     with col1:
         genre_diversity = len([v for v in st.session_state.genre_votes.values() if v > 0])
-        st.markdown(f'<div class="stat-card"><div class="stat-title">🎭 Изследвани жанрове</div><div class="stat-value">{genre_diversity} / {len(games)}</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="stat-card">'
+            f'<div class="stat-title">🎭 Изследвани жанрове</div>'
+            f'<div class="stat-value">{genre_diversity} / {len(games)}</div>'
+            f'</div>', 
+            unsafe_allow_html=True
+        )
     
     with col2:
         game_diversity = len([v for v in st.session_state.game_votes.values() if v > 0])
         total_games = sum(len(g) for g in games.values())
-        st.markdown(f'<div class="stat-card"><div class="stat-title">🎮 Изпробвани игри</div><div class="stat-value">{game_diversity} / {total_games}</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="stat-card">'
+            f'<div class="stat-title">🎮 Изпробвани игри</div>'
+            f'<div class="stat-value">{game_diversity} / {total_games}</div>'
+            f'</div>', 
+            unsafe_allow_html=True
+        )
 
 else:
     st.info("👆 Направи първия си избор, за да видиш страхотни статистики!")
 
 # Footer
 st.markdown("---")
-st.markdown('<p style="text-align: center; color: #E0E0E0; font-size: 0.9rem;">Създадено с ❤️ за геймъри от геймъри | Powered by Streamlit 🎮</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p style="text-align: center; color: #E0E0E0; font-size: 0.9rem;">'
+    'Създадено с ❤️ за геймъри от геймъри | Powered by Streamlit 🎮'
+    '</p>', 
+    unsafe_allow_html=True
+)
